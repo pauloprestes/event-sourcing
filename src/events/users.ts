@@ -1,8 +1,6 @@
 import { cloneDeep } from "lodash";
 import { save } from "../db/db";
 
-const allListeners = []
-
 export interface UserCreatedEvent {
   type: 'UserCreatedEvent'
   id: string
@@ -16,26 +14,41 @@ export interface UserUpdatedEvent {
   name: string
 }
 
-type Events = UserCreatedEvent | UserUpdatedEvent;
-
-const deliveryEvents = (user: Events) => {
-  allListeners.forEach(listener => listener(user));
+export interface UserDeletedEvent {
+  type: 'UserDeletedEvent',
+  id: string
 }
+
+type Events = UserCreatedEvent | UserUpdatedEvent | UserDeletedEvent;
 
 const saveEvents = (userEvent: Events) => save(userEvent)
 
-export const addListener = (listener: (anEvent: Events) => void) => {
-  allListeners.push(listener);
+const addListeners = []
+export const addListener = (listener: (anEvent: UserCreatedEvent) => void) => {
+  addListeners.push(listener);
+}
+
+const updatedListeners = []
+export const updatedListener = (listener: (anEvent: UserUpdatedEvent) => void) => {
+  updatedListeners.push(listener);
+}
+
+const deletedListeners = []
+export const deletedListener = (listener: (anEvent: UserDeletedEvent) => void) => {
+  deletedListeners.push(listener);
 }
 
 export const addUser = (user: UserCreatedEvent) => {
-  user.type = "UserCreatedEvent"
   saveEvents(user);
-  deliveryEvents(user);
+  addListeners.forEach(listener => listener(user));
 }
 
 export const updateUser = (user: UserUpdatedEvent) => {
-  user.type = "UserUpdatedEvent"
   saveEvents(user);
-  deliveryEvents(user);
+  updatedListeners.forEach(listener => listener(user));
+}
+
+export const deleteUser = (user: UserDeletedEvent) => {
+  saveEvents(user);
+  deletedListeners.forEach(listener => listener(user));
 }
