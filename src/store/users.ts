@@ -1,14 +1,20 @@
-import { addListener } from "../events/users"
-import { UserCreatedEvent } from "../events/createdEvent"
-import { cloneDeep } from "lodash";
+import { addListener, UserCreatedEvent, UserUpdatedEvent } from "../events/users"
+import { listAll } from "../db/db";
 
-const store = []
+const store = [];
 
-const addUser = (user: UserCreatedEvent) => {
-  store.push(cloneDeep(user));
+const rebuildStore = (allEvents: { type: String }[]) => {
+  allEvents.forEach(userEvent => {
+    if (userEvent.type === "UserCreatedEvent") addUser(userEvent as UserCreatedEvent)
+    if (userEvent.type === "UserUpdatedEvent") updateUser(userEvent as UserUpdatedEvent)
+  })
 }
 
-const updateUser = (user: UserCreatedEvent) => {
+const addUser = (user: UserCreatedEvent) => {
+  store.push({ id: user.id, name: user.id, email: user.email });
+}
+
+const updateUser = (user: UserUpdatedEvent) => {
   const userStore = store.find((userStored => userStored.id === user.id));
   if (!userStore) return;
 
@@ -20,3 +26,5 @@ export const findUser = (email: string) =>
 
 addListener(addUser);
 addListener(updateUser);
+
+listAll().then(data => rebuildStore(data));
