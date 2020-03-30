@@ -13,8 +13,6 @@ const rebuildStore = (allEvents: { type: String }[]) => {
 
 const addUser = (user: UserCreatedEvent) => {
   store.push({ id: user.id, name: user.id, email: user.email });
-  console.log("addUser");
-  console.log(store);
 }
 
 const updateUser = (user: UserUpdatedEvent) => {
@@ -22,17 +20,10 @@ const updateUser = (user: UserUpdatedEvent) => {
   if (!userStore) return;
 
   userStore.name = user.name
-
-  console.log("updateUser");
-  console.log(store);
 }
 
 const deleteUser = (user: UserDeletedEvent) => {
   store = store.filter((userStored => userStored.id !== user.id));
-
-
-  console.log("deleteUser");
-  console.log(store);
 }
 
 export const findUser = (email: string) =>
