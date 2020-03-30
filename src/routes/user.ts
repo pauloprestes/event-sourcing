@@ -5,6 +5,12 @@ import { findUser } from '../store/users';
 
 const postHandler = async (ctx: Koa.Context) => {
   const user = ctx.request.body;
+
+  if (findUser(user.email)) {
+    ctx.status = 422;
+    return
+  }
+
   addUser({ ...user, type: "UserCreatedEvent" })
   ctx.body = user
   ctx.status = 200;
