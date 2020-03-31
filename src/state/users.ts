@@ -1,8 +1,8 @@
 import { UserCreatedEvent, UserUpdatedEvent, UserDeletedEvent } from "../events/users"
 import { listAll, listNewEvents } from "../db/db";
 
-interface User {
-  id: string
+interface UserRecord {
+  _id: string
   email: string
   name: string
   createdAt: number
@@ -19,7 +19,7 @@ const deleteCollection = async () => MongoClient.connect(url, { poolSize: 10 }, 
   db.close();
 })
 
-const connectToDB = async () => new Promise<Collection<User>>(resolve => MongoClient.connect(url, { poolSize: 10 }, function (err, db) {
+const connectToDB = async () => new Promise<Collection<UserRecord>>(resolve => MongoClient.connect(url, { poolSize: 10 }, function (err, db) {
   if (err) throw err;
   resolve(db.db("testDB").collection("users"));
 }))
@@ -46,7 +46,7 @@ const applyEventsToState = async (allEvents: { type: String }[]) => {
 
 const addUser = async (user: UserCreatedEvent) => {
   const users = await connectToDB()
-  users.insertOne({ id: user.id, name: user.name, email: user.email, createdAt: user.addedAt }, function (err) {
+  users.insertOne({ _id: user.id, name: user.name, email: user.email, createdAt: user.addedAt }, function (err) {
     if (err) throw err;
   });
 }
@@ -54,13 +54,13 @@ const addUser = async (user: UserCreatedEvent) => {
 const updateUser = async (user: UserUpdatedEvent) => {
   const users = await connectToDB()
   users.updateOne(
-    { id: user.id },
+    { _id: user.id },
     { $set: { name: user.name, lastUpdatedAt: user.addedAt } });
 }
 
 const deleteUser = async (user: UserDeletedEvent) => {
   const users = await connectToDB()
-  users.deleteOne({ id: user.id });
+  users.deleteOne({ _id: user.id });
 }
 
 export const findUser = async (email: string) => {

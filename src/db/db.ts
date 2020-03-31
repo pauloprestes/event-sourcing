@@ -24,7 +24,14 @@ interface DefaultEvent {
 
 type EventNotification = (event: DefaultEvent[]) => void;
 
-let lastAdded = null
+let lastAdded: number = null
+
+
+const lastAddedEvent = (events: DefaultEvent[]): number => events.reduce((previous, current) => {
+  if (!previous.addedAt) return current
+  if (previous.addedAt < current.addedAt) return current
+  return previous
+}, { addedAt: null }).addedAt;
 
 export const listNewEvents = (notify: EventNotification) => {
   const backgroundQuery = async () => {
@@ -43,20 +50,16 @@ export const listNewEvents = (notify: EventNotification) => {
   backgroundQuery()
 }
 
-const lastAddedEvent = (events: DefaultEvent[]): number => events.reduce((previous, current) => {
-  if (!previous.addedAt) return current
-  if (previous.addedAt < current.addedAt) return current
-  return previous
-}, { addedAt: null }).addedAt;
-
 export const listAll = async (): Promise<DefaultEvent[]> => {
   const events = await connectToDB()
-  return new Promise(resolve => {
-    events.find().toArray((err, result) => {
-      if (err) throw err;
+  const data = await events.find().toArray()
 
-      lastAdded = lastAddedEvent(result)
-      resolve(result);
-    });
-  })
+  lastAdded = lastAddedEvent(data)
+  return data;
+}
+
+export const listNewEventsPerId = async ({ id, lastAdded }: { id: string, lastAdded: number }) => {
+  const events = await connectToDB();
+  const query = { id, addedAt: { $exists: true, $gt: lastAdded } }
+  return await events.find(query).toArray();
 }
