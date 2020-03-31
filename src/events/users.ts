@@ -1,6 +1,7 @@
 import { save } from "../db/db";
 
 export interface UserCreatedEvent {
+  addedAt: number
   type: 'UserCreatedEvent'
   id: string
   email: string
@@ -8,12 +9,14 @@ export interface UserCreatedEvent {
 }
 
 export interface UserUpdatedEvent {
+  addedAt: number
   type: 'UserUpdatedEvent'
   id: string
   name: string
 }
 
 export interface UserDeletedEvent {
+  addedAt: number
   type: 'UserDeletedEvent'
   id: string
 }
@@ -22,32 +25,11 @@ type Events = UserCreatedEvent | UserUpdatedEvent | UserDeletedEvent;
 
 const saveEvents = (userEvent: Events) => save(userEvent)
 
-const addListeners = []
-export const addListener = (listener: (anEvent: UserCreatedEvent) => void) => {
-  addListeners.push(listener);
-}
+export const addUser = (user: { id: string, email: string, name: string }) =>
+  saveEvents({ type: "UserCreatedEvent", addedAt: Date.now(), ...user });
 
-const updatedListeners = []
-export const updatedListener = (listener: (anEvent: UserUpdatedEvent) => void) => {
-  updatedListeners.push(listener);
-}
+export const updateUser = (id: string, user: { name: string }) =>
+  saveEvents({ type: "UserUpdatedEvent", id, addedAt: Date.now(), ...user });
 
-const deletedListeners = []
-export const deletedListener = (listener: (anEvent: UserDeletedEvent) => void) => {
-  deletedListeners.push(listener);
-}
-
-export const addUser = (user: UserCreatedEvent) => {
-  saveEvents(user);
-  addListeners.forEach(listener => listener(user));
-}
-
-export const updateUser = (user: UserUpdatedEvent) => {
-  saveEvents(user);
-  updatedListeners.forEach(listener => listener(user));
-}
-
-export const deleteUser = (user: UserDeletedEvent) => {
-  saveEvents(user);
-  deletedListeners.forEach(listener => listener(user));
-}
+export const deleteUser = (id: string) =>
+  saveEvents({ type: "UserDeletedEvent", id, addedAt: Date.now() });

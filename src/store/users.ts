@@ -1,12 +1,15 @@
-import { UserCreatedEvent, UserUpdatedEvent, UserDeletedEvent, deletedListener, updatedListener } from "../events/users"
+import { UserCreatedEvent, UserUpdatedEvent, UserDeletedEvent } from "../events/users"
 import { listAll, listNewEvents } from "../db/db";
 
 interface User {
-  Id: string
-  Email: string
-  Name: string
+  id: string
+  email: string
+  name: string
+  createdAt: number
+  lastUpdatedAt?: number
 }
-let store = [];
+
+let store: User[] = [];
 
 const backgroundUpdate = async () => {
   rebuildStore(await listAll());
@@ -25,7 +28,7 @@ const rebuildStore = (allEvents: { type: String }[]) => {
 }
 
 const addUser = (user: UserCreatedEvent) => {
-  store = [...store, { id: user.id, name: user.name, email: user.email }];
+  store = [...store, { id: user.id, name: user.name, email: user.email, createdAt: user.addedAt }];
 }
 
 const updateUser = (user: UserUpdatedEvent) => {
@@ -33,6 +36,7 @@ const updateUser = (user: UserUpdatedEvent) => {
   if (!userStore) return;
 
   userStore.name = user.name
+  userStore.lastUpdatedAt = user.addedAt
 }
 
 const deleteUser = (user: UserDeletedEvent) => {

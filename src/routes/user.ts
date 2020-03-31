@@ -11,7 +11,7 @@ const postHandler = async (ctx: Koa.Context) => {
     return
   }
 
-  addUser({ ...user, type: "UserCreatedEvent" })
+  addUser(user)
   ctx.body = user
   ctx.status = 200;
 };
@@ -24,8 +24,8 @@ const postIdHandler = async (ctx: Koa.Context) => {
     return
   }
 
-  updateUser({ ...userChanges, id: user.id, type: "UserUpdatedEvent" })
-  ctx.body = user
+  updateUser(user.id, userChanges)
+  ctx.body = findUser(ctx.params.email)
   ctx.status = 200;
 };
 
@@ -36,7 +36,7 @@ const deleteIdHandler = async (ctx: Koa.Context) => {
     return
   }
 
-  deleteUser({ id: user.id, type: "UserDeletedEvent" })
+  deleteUser(user.id)
   ctx.body = user
   ctx.status = 204;
 };
