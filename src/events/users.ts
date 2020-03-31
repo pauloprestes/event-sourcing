@@ -1,4 +1,3 @@
-import { cloneDeep } from "lodash";
 import { save } from "../db/db";
 
 export interface UserCreatedEvent {
@@ -9,13 +8,13 @@ export interface UserCreatedEvent {
 }
 
 export interface UserUpdatedEvent {
-  type: 'UserUpdatedEvent',
+  type: 'UserUpdatedEvent'
   id: string
   name: string
 }
 
 export interface UserDeletedEvent {
-  type: 'UserDeletedEvent',
+  type: 'UserDeletedEvent'
   id: string
 }
 

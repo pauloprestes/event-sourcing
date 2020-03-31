@@ -1,45 +1,56 @@
 
 import { MongoClient } from 'mongodb'
-import { resolve } from 'dns';
 
-var url = "mongodb://localhost:27017/";
+var url = "mongodb://localhost:27017/testDB";
 
-export const save = (event: { id: string, type: string }) => {
-  MongoClient.connect(url, function (err, db) {
+const connectToDB = async (): Promise<any> => new Promise(resolve => MongoClient.connect(url, { poolSize: 10 }, function (err, db) {
+  if (err) throw err;
+  resolve(db.db("testDB").collection("events"));
+  //db.close();
+}))
+
+export const save = async (event: { id: string, type: string }) => {
+  const events = await connectToDB()
+  events.insertOne({ ...event, addedAt: Date.now() }, function (err) {
     if (err) throw err;
-    var dbo = db.db("testDB");
-    dbo.collection("events").insertOne(event, function (err, res) {
-      if (err) throw err;
-      console.log("1 document inserted");
-      db.close();
-    });
   });
 }
 
-export const list = (id: string): Promise<{ id: string }[]> => {
-  return new Promise((resolve) => {
-    MongoClient.connect(url, function (err, db) {
-      if (err) throw err;
-      var dbo = db.db("testDB");
-      dbo.collection("events").find({ id }).toArray((err, result) => {
-        if (err) throw err;
-        resolve(result);
-        db.close();
-      });
-    });
-  });
+type DefaultEvent = {
+  id: string;
+  type: string;
 };
 
-export const listAll = (): Promise<{ id: string, type: string }[]> => {
-  return new Promise((resolve) => {
-    MongoClient.connect(url, function (err, db) {
+type EventNotification = (event: DefaultEvent[]) => void;
+
+let lastAdded = null
+
+export const listNewEvents = (notify: EventNotification) => {
+  const backgroundQuery = async () => {
+    setTimeout(async () => {
+      const events = await connectToDB();
+      const query = { addedAt: { $exists: true, $gte: lastAdded } }
+      events.find(query).toArray((_, result) => {
+        notify(result)
+      })
+      backgroundQuery()
+    }, 50);
+  }
+  backgroundQuery()
+}
+
+export const listAll = async (): Promise<DefaultEvent[]> => {
+  const events = await connectToDB()
+  return new Promise(resolve => {
+    events.find().toArray((err, result) => {
       if (err) throw err;
-      var dbo = db.db("testDB");
-      dbo.collection("events").find().toArray((err, result) => {
-        if (err) throw err;
-        resolve(result);
-        db.close();
-      });
+
+      lastAdded = result.reduce((previous, current) => {
+        if (!previous || !previous.addedAt) return current
+        if (previous.addedAt < current.addedAt) return current
+        return previous
+      }).addedAt;
+      resolve(result);
     });
-  });
-};
+  })
+}

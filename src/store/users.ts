@@ -1,7 +1,20 @@
-import { addListener, UserCreatedEvent, UserUpdatedEvent, UserDeletedEvent, deletedListener, updatedListener } from "../events/users"
-import { listAll } from "../db/db";
+import { UserCreatedEvent, UserUpdatedEvent, UserDeletedEvent, deletedListener, updatedListener } from "../events/users"
+import { listAll, listNewEvents } from "../db/db";
 
+interface User {
+  Id: string
+  Email: string
+  Name: string
+}
 let store = [];
+
+const backgroundUpdate = async () => {
+  rebuildStore(await listAll());
+  await listNewEvents(events => {
+    rebuildStore(events)
+  })
+}
+
 
 const rebuildStore = (allEvents: { type: String }[]) => {
   allEvents.forEach(userEvent => {
@@ -12,7 +25,7 @@ const rebuildStore = (allEvents: { type: String }[]) => {
 }
 
 const addUser = (user: UserCreatedEvent) => {
-  store.push({ id: user.id, name: user.id, email: user.email });
+  store = [...store, { id: user.id, name: user.name, email: user.email }];
 }
 
 const updateUser = (user: UserUpdatedEvent) => {
@@ -29,8 +42,4 @@ const deleteUser = (user: UserDeletedEvent) => {
 export const findUser = (email: string) =>
   store.find(user => user.email === email)
 
-addListener((addUser));
-updatedListener(updateUser);
-deletedListener(deleteUser);
-
-listAll().then(data => rebuildStore(data));
+backgroundUpdate();
