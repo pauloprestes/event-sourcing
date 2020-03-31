@@ -1,9 +1,9 @@
 
-import { MongoClient } from 'mongodb'
+import { MongoClient, Collection } from 'mongodb'
 
 var url = "mongodb://localhost:27017/testDB";
 
-const connectToDB = async (): Promise<any> => new Promise(resolve => MongoClient.connect(url, { poolSize: 10 }, function (err, db) {
+const connectToDB = async (): Promise<Collection<DefaultEvent>> => new Promise(resolve => MongoClient.connect(url, { poolSize: 10 }, function (err, db) {
   if (err) throw err;
   resolve(db.db("testDB").collection("events"));
   //db.close();
@@ -16,9 +16,10 @@ export const save = async (event: { id: string, type: string }) => {
   });
 }
 
-type DefaultEvent = {
-  id: string;
-  type: string;
+interface DefaultEvent {
+  addedAt: number
+  id: string
+  type: string
 };
 
 type EventNotification = (event: DefaultEvent[]) => void;
@@ -29,15 +30,24 @@ export const listNewEvents = (notify: EventNotification) => {
   const backgroundQuery = async () => {
     setTimeout(async () => {
       const events = await connectToDB();
-      const query = { addedAt: { $exists: true, $gte: lastAdded } }
+      const query = { addedAt: { $exists: true, $gt: lastAdded } }
       events.find(query).toArray((_, result) => {
+        if (result.length === 0) return;
+
+        lastAdded = lastAddedEvent(result)
         notify(result)
       })
       backgroundQuery()
-    }, 50);
+    }, 10);
   }
   backgroundQuery()
 }
+
+const lastAddedEvent = (events: DefaultEvent[]): number => events.reduce((previous, current) => {
+  if (!previous.addedAt) return current
+  if (previous.addedAt < current.addedAt) return current
+  return previous
+}, { addedAt: null }).addedAt;
 
 export const listAll = async (): Promise<DefaultEvent[]> => {
   const events = await connectToDB()
@@ -45,11 +55,7 @@ export const listAll = async (): Promise<DefaultEvent[]> => {
     events.find().toArray((err, result) => {
       if (err) throw err;
 
-      lastAdded = result.reduce((previous, current) => {
-        if (!previous || !previous.addedAt) return current
-        if (previous.addedAt < current.addedAt) return current
-        return previous
-      }).addedAt;
+      lastAdded = lastAddedEvent(result)
       resolve(result);
     });
   })

@@ -6,31 +6,31 @@ import { findUser } from '../store/users';
 const postHandler = async (ctx: Koa.Context) => {
   const user = ctx.request.body;
 
-  if (findUser(user.email)) {
+  if (await findUser(user.email)) {
     ctx.status = 422;
     return
   }
 
   addUser(user)
-  ctx.body = user
+  ctx.body = await findUser(ctx.params.email)
   ctx.status = 200;
 };
 
 const postIdHandler = async (ctx: Koa.Context) => {
   const userChanges = ctx.request.body;
-  const user = findUser(ctx.params.email)
+  const user = await findUser(ctx.params.email)
   if (!user) {
     ctx.status = 404;
     return
   }
 
-  updateUser(user.id, userChanges)
-  ctx.body = findUser(ctx.params.email)
+  await updateUser(user.id, userChanges)
+  ctx.body = await findUser(ctx.params.email)
   ctx.status = 200;
 };
 
 const deleteIdHandler = async (ctx: Koa.Context) => {
-  const user = findUser(ctx.params.email)
+  const user = await findUser(ctx.params.email)
   if (!user) {
     ctx.status = 404;
     return
@@ -42,7 +42,7 @@ const deleteIdHandler = async (ctx: Koa.Context) => {
 };
 
 const getHandler = async (ctx: Koa.Context) => {
-  const user = findUser(ctx.params.email)
+  const user = await findUser(ctx.params.email)
   if (!user) {
     ctx.status = 404;
     return
