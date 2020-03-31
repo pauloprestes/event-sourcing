@@ -1,7 +1,7 @@
 import * as Koa from 'koa';
 import * as Router from 'koa-router';
 import { addUser, updateUser, deleteUser } from '../events/users';
-import { findUser } from '../store/users';
+import { findUser } from '../state/users';
 
 const postHandler = async (ctx: Koa.Context) => {
   const user = ctx.request.body;

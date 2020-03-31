@@ -27,20 +27,21 @@ const connectToDB = async () => new Promise<Collection<User>>(resolve => MongoCl
 
 const backgroundUpdate = async () => {
   deleteCollection();
-  rebuildStore(await listAll());
-  await listNewEvents(events => {
-    if (events.length > 0) console.log(events)
-    rebuildStore(events)
+  applyEventsToState(await listAll());
+  await listNewEvents(async events => {
+    await applyEventsToState(events)
   })
 }
 
 
-const rebuildStore = (allEvents: { type: String }[]) => {
-  allEvents.forEach(userEvent => {
-    if (userEvent.type === "UserCreatedEvent") addUser(userEvent as UserCreatedEvent)
-    if (userEvent.type === "UserUpdatedEvent") updateUser(userEvent as UserUpdatedEvent)
-    if (userEvent.type === "UserDeletedEvent") deleteUser(userEvent as UserDeletedEvent)
-  })
+const applyEventsToState = async (allEvents: { type: String }[]) => {
+  for (let i = 0; i < allEvents.length; i++) {
+    const userEvent = allEvents[i];
+
+    if (userEvent.type === "UserCreatedEvent") await addUser(userEvent as UserCreatedEvent)
+    if (userEvent.type === "UserUpdatedEvent") await updateUser(userEvent as UserUpdatedEvent)
+    if (userEvent.type === "UserDeletedEvent") await deleteUser(userEvent as UserDeletedEvent)
+  }
 }
 
 const addUser = async (user: UserCreatedEvent) => {

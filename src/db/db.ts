@@ -38,7 +38,7 @@ export const listNewEvents = (notify: EventNotification) => {
         notify(result)
       })
       backgroundQuery()
-    }, 10);
+    }, 100);
   }
   backgroundQuery()
 }
