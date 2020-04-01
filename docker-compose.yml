@@ -3,6 +3,8 @@ services:
   mongodb:
     hostname: mongodb
     image: "mongo"
+    volumes:
+       - ./.mongo_data/:/data/db
   worker:
     build: worker/.
     environment:
