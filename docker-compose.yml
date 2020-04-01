@@ -3,6 +3,10 @@ services:
   mongodb:
     hostname: mongodb
     image: "mongo"
+  worker:
+    build: worker/.
+    environment:
+      - MONGO_URL="mongodb://mongodb:27017/testDB"
   user:
     build: app/.
     ports:

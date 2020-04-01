@@ -12,10 +12,6 @@ RUN npm ci --no-optional
 RUN npm run build
 RUN npm prune --production
 
-ENV NODE_ENV production
-ENV PORT 8001
-EXPOSE 8001
-
 FROM node:12.2.0-alpine
 
 COPY --from=builder /app/dist /app/dist

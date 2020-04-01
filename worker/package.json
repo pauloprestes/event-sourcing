@@ -1,0 +1,26 @@
+{
+  "name": "event-sourcing",
+  "version": "1.0.0",
+  "description": "",
+  "main": "src/index.ts",
+  "scripts": {
+    "start": "nodemon",
+    "build": "tsc"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@types/lodash": "^4.14.149",
+    "@types/mongodb": "^3.5.4",
+    "lodash": "^4.17.15",
+    "mongodb": "^3.5.5",
+    "uuid": "^7.0.2"
+  },
+  "devDependencies": {
+    "@types/node": "^12.11.1",
+    "@types/uuid": "^7.0.2",
+    "nodemon": "^2.0.2",
+    "ts-node": "^8.4.1",
+    "typescript": "^3.6.4"
+  }
+}
