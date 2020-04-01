@@ -6,6 +6,7 @@ services:
   user:
     build: .
     ports:
-      - "8001:8001"
+      - "8080:8001"
     environment:
+      - PORT=8080
       - MONGO_URL="mongodb://mongodb:27017/testDB"
