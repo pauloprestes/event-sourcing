@@ -1,5 +1,7 @@
 import { UserCreatedEvent, UserUpdatedEvent, UserDeletedEvent } from "../events/users"
-import { listAll, listNewEvents } from "../db/db";
+import { listNewEvents } from "../db/db";
+import { MongoClient, Collection } from 'mongodb'
+import config from "../config";
 
 interface UserRecord {
   _id: string
@@ -9,26 +11,47 @@ interface UserRecord {
   lastUpdatedAt?: number
 }
 
-import { MongoClient, Collection } from 'mongodb'
-
-var url = "mongodb://localhost:27017/testDB";
-
-const deleteCollection = async () => MongoClient.connect(url, { poolSize: 10 }, function (err, db) {
-  if (err) throw err;
+const deleteCollection = async () => {
+  const db = await MongoClient.connect(config.mongo_url, {
+    poolSize: 10,
+    // retry to connect for 60 times
+    reconnectTries: 60,
+    // wait 1 second before retrying
+    reconnectInterval: 1000
+  })
   db.db("testDB").collection("users").drop();
   db.close();
-})
+}
 
-const connectToDB = async () => new Promise<Collection<UserRecord>>(resolve => MongoClient.connect(url, { poolSize: 10 }, function (err, db) {
-  if (err) throw err;
-  resolve(db.db("testDB").collection("users"));
-}))
+const connectToDB = async (): Promise<Collection<UserRecord>> => {
+  const db = await MongoClient.connect(config.mongo_url, {
+    poolSize: 10,
+    // retry to connect for 60 times
+    reconnectTries: 60,
+    // wait 1 second before retrying
+    reconnectInterval: 1000
+  })
+  return db.db("testDB").collection("users");
+}
 
+const deleteOldState = () => new Promise(resolve => {
+  const keepTrying = () => setTimeout(async () => {
+    try {
+      await deleteCollection();
+      resolve();
+    } catch (err) {
+      console.log("Error deleting old state")
+      keepTrying();
+    }
+  }, 100);
+
+  keepTrying();
+});
 
 const backgroundUpdate = async () => {
-  deleteCollection();
-  applyEventsToState(await listAll());
-  await listNewEvents(async events => {
+  await deleteOldState();
+  listNewEvents(async events => {
+    console.log(events)
     await applyEventsToState(events)
   })
 }
@@ -71,4 +94,10 @@ export const findUser = async (email: string) => {
   return cursor.next();
 }
 
+export const listUsers = async () => {
+  const users = await connectToDB()
+  return users.find().toArray();
+}
+
+console.log(config.mongo_url)
 backgroundUpdate();

@@ -1,7 +1,7 @@
 import * as Koa from 'koa';
 import * as Router from 'koa-router';
 import { addUser, updateUser, deleteUser } from '../events/users';
-import { findUser } from '../state/users';
+import { findUser, listUsers } from '../state/users';
 import { v4 as uuidV4 } from 'uuid';
 
 const postHandler = async (ctx: Koa.Context) => {
@@ -53,8 +53,14 @@ const getHandler = async (ctx: Koa.Context) => {
   ctx.status = 200;
 };
 
+const listHandler = async (ctx: Koa.Context) => {
+  ctx.body = await listUsers()
+  ctx.status = 200;
+};
+
 const user = new Router()
   .post('/', postHandler)
+  .get('/', listHandler)
   .post('/:email', postIdHandler)
   .delete('/:email', deleteIdHandler)
   .get('/:email', getHandler);

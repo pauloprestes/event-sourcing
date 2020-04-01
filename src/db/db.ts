@@ -1,13 +1,17 @@
 
 import { MongoClient, Collection } from 'mongodb'
+import config from '../config';
 
-var url = "mongodb://localhost:27017/testDB";
-
-const connectToDB = async (): Promise<Collection<DefaultEvent>> => new Promise(resolve => MongoClient.connect(url, { poolSize: 10 }, function (err, db) {
-  if (err) throw err;
-  resolve(db.db("testDB").collection("events"));
-  //db.close();
-}))
+const connectToDB = async (): Promise<Collection<DefaultEvent>> => {
+  const db = await MongoClient.connect(config.mongo_url, {
+    poolSize: 10,
+    // retry to connect for 60 times
+    reconnectTries: 60,
+    // wait 1 second before retrying
+    reconnectInterval: 1000
+  })
+  return db.db("testDB").collection("events");
+}
 
 export const save = async (event: { id: string, type: string }) => {
   const events = await connectToDB()
@@ -22,7 +26,7 @@ interface DefaultEvent {
   type: string
 };
 
-type EventNotification = (event: DefaultEvent[]) => void;
+type EventNotification = (event: DefaultEvent[]) => Promise<void>;
 
 let lastAdded: number = null
 
@@ -33,18 +37,30 @@ const lastAddedEvent = (events: DefaultEvent[]): number => events.reduce((previo
   return previous
 }, { addedAt: null }).addedAt;
 
+
+const queryBasedOnLastAddedDate = () => {
+  if (!lastAdded) return {};
+  return { addedAt: { $exists: true, $gt: lastAdded } };
+}
+
 export const listNewEvents = (notify: EventNotification) => {
   const backgroundQuery = async () => {
     setTimeout(async () => {
-      const events = await connectToDB();
-      const query = { addedAt: { $exists: true, $gt: lastAdded } }
-      events.find(query).toArray((_, result) => {
-        if (result.length === 0) return;
-
-        lastAdded = lastAddedEvent(result)
-        notify(result)
-      })
-      backgroundQuery()
+      try {
+        const events = await connectToDB();
+        const query = queryBasedOnLastAddedDate()
+        const result = await events.find(query).toArray()
+        if (result.length > 0) {
+          lastAdded = lastAddedEvent(result)
+          await notify(result)
+        }
+      }
+      catch (err) {
+        console.log("error listing new events")
+      }
+      finally {
+        backgroundQuery()
+      }
     }, 100);
   }
   backgroundQuery()

@@ -1,0 +1,11 @@
+version: '3'
+services:
+  mongodb:
+    hostname: mongodb
+    image: "mongo"
+  user:
+    build: .
+    ports:
+      - "8001:8001"
+    environment:
+      - MONGO_URL="mongodb://mongodb:27017/testDB"
