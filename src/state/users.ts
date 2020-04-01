@@ -51,7 +51,6 @@ const deleteOldState = () => new Promise(resolve => {
 const backgroundUpdate = async () => {
   await deleteOldState();
   listNewEvents(async events => {
-    console.log(events)
     await applyEventsToState(events)
   })
 }
@@ -99,5 +98,4 @@ export const listUsers = async () => {
   return users.find().toArray();
 }
 
-console.log(config.mongo_url)
 backgroundUpdate();
