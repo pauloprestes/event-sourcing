@@ -68,21 +68,19 @@ const applyEventsToState = async (allEvents: { type: String }[]) => {
 
 const addUser = async (user: UserCreatedEvent) => {
   const users = await connectToDB()
-  users.insertOne({ _id: user.id, name: user.name, email: user.email, createdAt: user.addedAt }, function (err) {
-    if (err) throw err;
-  });
+  await users.insertOne({ _id: user.id, name: user.name, email: user.email, createdAt: user.addedAt })
 }
 
 const updateUser = async (user: UserUpdatedEvent) => {
   const users = await connectToDB()
-  users.updateOne(
+  await users.updateOne(
     { _id: user.id },
     { $set: { name: user.name, lastUpdatedAt: user.addedAt } });
 }
 
 const deleteUser = async (user: UserDeletedEvent) => {
   const users = await connectToDB()
-  users.deleteOne({ _id: user.id });
+  await users.deleteOne({ _id: user.id });
 }
 
 export const findUser = async (email: string) => {
