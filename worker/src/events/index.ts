@@ -1,16 +1,5 @@
-import { MongoClient, Collection } from 'mongodb'
-import config from '../config';
-
-const connectToDB = async (): Promise<Collection<DefaultEvent>> => {
-  const db = await MongoClient.connect(config.mongo_url, {
-    poolSize: 10,
-    // retry to connect for 60 times
-    reconnectTries: 60,
-    // wait 1 second before retrying
-    reconnectInterval: 1000
-  })
-  return db.db("testDB").collection("events");
-}
+import { runConnected } from "../db";
+import { Collection } from "mongodb";
 
 interface DefaultEvent {
   addedAt: number
@@ -18,8 +7,48 @@ interface DefaultEvent {
   type: string
 };
 
-type EventNotification = (event: DefaultEvent[]) => Promise<void>;
+export interface UserCreatedEvent {
+  addedAt: number
+  type: 'UserCreatedEvent'
+  id: string
+  email: string
+  name: string
+}
 
+export interface UserUpdatedEvent {
+  addedAt: number
+  type: 'UserUpdatedEvent'
+  id: string
+  name: string
+}
+
+export interface UserDeletedEvent {
+  addedAt: number
+  type: 'UserDeletedEvent'
+  id: string
+}
+
+type Events = UserCreatedEvent | UserUpdatedEvent | UserDeletedEvent;
+
+const saveEvents = (userEvent: Events) => save(userEvent)
+
+export const addUser = (user: { id: string, email: string, name: string }) =>
+  saveEvents({ type: "UserCreatedEvent", addedAt: Date.now(), ...user });
+
+export const updateUser = (id: string, user: { name: string }) =>
+  saveEvents({ type: "UserUpdatedEvent", id, addedAt: Date.now(), ...user });
+
+export const deleteUser = (id: string) =>
+  saveEvents({ type: "UserDeletedEvent", id, addedAt: Date.now() });
+
+
+const save = async (event: { id: string, type: string }) => {
+  await runConnected("events", async (events: Collection<DefaultEvent>) => {
+    await events.insertOne({ ...event, addedAt: Date.now() })
+  })
+}
+
+type EventNotification = (event: DefaultEvent[]) => Promise<void>;
 
 const queryBasedOnLastAddedDate = (lastAdded: number) => {
   if (!lastAdded) return {};
@@ -30,12 +59,13 @@ export const subscribeToNewEvents = (cursor: () => number, notify: EventNotifica
   const backgroundQuery = async () => {
     setTimeout(async () => {
       try {
-        const events = await connectToDB();
-        const query = queryBasedOnLastAddedDate(cursor())
-        const result = await events.find(query).toArray()
-        if (result.length > 0) {
-          await notify(result)
-        }
+        await runConnected("events", async (events: Collection<DefaultEvent>) => {
+          const query = queryBasedOnLastAddedDate(cursor())
+          const result = await events.find(query).toArray()
+          if (result.length > 0) {
+            await notify(result)
+          }
+        });
       }
       catch (err) {
         console.log("error listing new events")

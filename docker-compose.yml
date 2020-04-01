@@ -5,6 +5,8 @@ services:
     image: "mongo"
     volumes:
        - ./.mongo_data/:/data/db
+    ports:
+      - "27017:27017"
   worker:
     build: worker/.
     environment:
@@ -16,3 +18,4 @@ services:
     environment:
       - PORT=8080
       - MONGO_URL="mongodb://mongodb:27017/testDB"
+      - WORKER="true"

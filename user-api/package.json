@@ -5,14 +5,12 @@
   "main": "src/index.ts",
   "scripts": {
     "start": "nodemon",
+    "start:req:worker": "WORKER=true nodemon",
     "build": "tsc"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@types/koa-bodyparser": "^4.3.0",
-    "@types/lodash": "^4.14.149",
-    "@types/mongodb": "^3.5.4",
     "koa": "^2.10.0",
     "koa-bodyparser": "^4.3.0",
     "koa-router": "^7.4.0",
@@ -21,7 +19,10 @@
     "uuid": "^7.0.2"
   },
   "devDependencies": {
+    "@types/lodash": "^4.14.149",
+    "@types/mongodb": "^3.5.4",
     "@types/koa": "^2.0.51",
+    "@types/koa-bodyparser": "^4.3.0",
     "@types/koa-router": "^7.0.42",
     "@types/node": "^12.11.1",
     "@types/uuid": "^7.0.2",

@@ -1,4 +1,11 @@
-import { save } from "../db/db";
+import { runConnected } from "../db";
+import { Collection } from "mongodb";
+
+interface DefaultEvent {
+  addedAt: number
+  id: string
+  type: string
+};
 
 export interface UserCreatedEvent {
   addedAt: number
@@ -33,3 +40,40 @@ export const updateUser = (id: string, user: { name: string }) =>
 
 export const deleteUser = (id: string) =>
   saveEvents({ type: "UserDeletedEvent", id, addedAt: Date.now() });
+
+
+const save = async (event: { id: string, type: string }) => {
+  await runConnected("events", async (events: Collection<DefaultEvent>) => {
+    await events.insertOne({ ...event, addedAt: Date.now() })
+  })
+}
+
+type EventNotification = (event: DefaultEvent[]) => Promise<void>;
+
+const queryBasedOnLastAddedDate = (lastAdded: number) => {
+  if (!lastAdded) return {};
+  return { addedAt: { $exists: true, $gt: lastAdded } };
+}
+
+export const subscribeToNewEvents = (cursor: () => number, notify: EventNotification) => {
+  const backgroundQuery = async () => {
+    setTimeout(async () => {
+      try {
+        await runConnected("events", async (events: Collection<DefaultEvent>) => {
+          const query = queryBasedOnLastAddedDate(cursor())
+          const result = await events.find(query).toArray()
+          if (result.length > 0) {
+            await notify(result)
+          }
+        });
+      }
+      catch (err) {
+        console.log("error listing new events")
+      }
+      finally {
+        backgroundQuery()
+      }
+    }, 100);
+  }
+  backgroundQuery()
+}

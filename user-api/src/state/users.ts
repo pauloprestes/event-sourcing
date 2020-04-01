@@ -1,36 +1,33 @@
-import { UserCreatedEvent, UserUpdatedEvent, UserDeletedEvent } from "../events/users"
-import { listNewEvents } from "../db/db";
-import { MongoClient, Collection } from 'mongodb'
-import config from "../config";
+import * as noWorker from './users-no-worker'
+import * as withWorker from './users-worker'
+import { subscribeToNewEvents } from '../events/users';
 
-interface UserRecord {
-  _id: string
-  email: string
-  name: string
-  createdAt: number
-  lastUpdatedAt?: number
+
+const selectUserImplementation = () => {
+  if (process.env.WORKER !== "true") {
+    console.log("DON'T WORRY, I'M HANDLING SYNCHRONIZATION")
+    const lastAddedEvent = (events: { addedAt: number }[]): number => events.reduce((previous, current) => {
+      if (!previous.addedAt) return current
+      if (previous.addedAt < current.addedAt) return current
+      return previous
+    }, { addedAt: null }).addedAt;
+
+    const program = async () => {
+      await noWorker.deleteOldState();
+      let lastAdded: number = null
+      subscribeToNewEvents(() => lastAdded, async (events) => {
+        await noWorker.applyEventsToState(events)
+        lastAdded = lastAddedEvent(events)
+      })
+    }
+
+    program()
+    return noWorker
+  }
+  console.log("NEEDS WORKER TO SYNCHRONIZE")
+  return withWorker
 }
 
-const connectToDB = async (): Promise<Collection<UserRecord>> => {
-  const db = await MongoClient.connect(config.mongo_url, {
-    poolSize: 10,
-    // retry to connect for 60 times
-    reconnectTries: 60,
-    // wait 1 second before retrying
-    reconnectInterval: 1000
-  })
-  return db.db("testDB").collection("users");
-}
-
-export const findUser = async (email: string) => {
-  const users = await connectToDB()
-  const cursor = users.find({ email });
-  if (!cursor.hasNext()) return null;
-
-  return cursor.next();
-}
-
-export const listUsers = async () => {
-  const users = await connectToDB()
-  return users.find().toArray();
-}
+const defaultUser = selectUserImplementation()
+export const findUser = defaultUser.findUser
+export const listUsers = defaultUser.listUsers
