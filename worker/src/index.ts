@@ -1,11 +1,20 @@
 import { deleteOldState, applyEventsToState } from "./state";
-import { listNewEvents } from "./events";
+import { subscribeToNewEvents } from "./events";
 
-export const backgroundUpdate = async () => {
+const lastAddedEvent = (events: { addedAt: number }[]): number => events.reduce((previous, current) => {
+  if (!previous.addedAt) return current
+  if (previous.addedAt < current.addedAt) return current
+  return previous
+}, { addedAt: null }).addedAt;
+
+
+export const program = async () => {
   await deleteOldState();
-  listNewEvents(async events => {
+  let lastAdded: number = null
+  subscribeToNewEvents(() => lastAdded, async (events) => {
     await applyEventsToState(events)
+    lastAdded = lastAddedEvent(events)
   })
 }
 
-backgroundUpdate();
+program();

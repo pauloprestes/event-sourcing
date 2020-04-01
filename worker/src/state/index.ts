@@ -1,4 +1,4 @@
-import { listNewEvents } from "../events";
+import { subscribeToNewEvents } from "../events";
 import { MongoClient, Collection } from 'mongodb'
 import config from "../config";
 
