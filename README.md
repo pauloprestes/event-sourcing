@@ -4,31 +4,11 @@ Example of Event Sourcing
 ### Prerequisites
   - Docker
 
-### Command
-  docker-compose up
-
-
-## Build
-
-### Prerequisites
-  - npm
-  - node
-
-### RUN
-  - worker
-  ```
-    cd worker
-    npm install
-    npm start
+### Run
+  ```bash
+    docker-compose up
   ```
 
-  - app
-  ```
-    cd worker
-    npm install
-    npm start
-  ```
-
-### DIAGRAM
-
-![High Level](DOCS/Diagram.svg)
+### Diagram
+### High-Level
+![High Level](docs/Diagram.svg)

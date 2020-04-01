@@ -7,8 +7,8 @@ services:
     build: worker/.
     environment:
       - MONGO_URL="mongodb://mongodb:27017/testDB"
-  user:
-    build: app/.
+  user-api:
+    build: user-api/.
     ports:
       - "8080:8001"
     environment:
