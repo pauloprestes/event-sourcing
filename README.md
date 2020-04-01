@@ -11,4 +11,5 @@ Example of Event Sourcing
 
 ### Diagram
 ### High-Level
+
 ![High Level](docs/Diagram.svg)
