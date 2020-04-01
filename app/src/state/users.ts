@@ -55,7 +55,6 @@ const backgroundUpdate = async () => {
   })
 }
 
-
 const applyEventsToState = async (allEvents: { type: String }[]) => {
   for (let i = 0; i < allEvents.length; i++) {
     const userEvent = allEvents[i];

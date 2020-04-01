@@ -4,7 +4,7 @@ services:
     hostname: mongodb
     image: "mongo"
   user:
-    build: service/.
+    build: app/.
     ports:
       - "8080:8001"
     environment:
