@@ -3,19 +3,19 @@ import * as Router from 'koa-router';
 import { addUser, updateUser, deleteUser } from '../events/users';
 import { findUser, listUsers } from '../state/users';
 import { v4 as uuidV4 } from 'uuid';
+import { waitForUserActivation } from '../activation';
 
 const postHandler = async (ctx: Koa.Context) => {
   const user = ctx.request.body;
-
-  if (await findUser(user.email)) {
+  user.id = uuidV4();
+  addUser(user)
+  if (!await waitForUserActivation(user.id)) {
+    deleteUser(user.id);
     ctx.status = 422;
     return
   }
 
-  user.id = uuidV4();
-  addUser(user)
-  ctx.body = await findUser(ctx.params.email)
-  ctx.status = 200;
+  ctx.status = 204;
 };
 
 const postIdHandler = async (ctx: Koa.Context) => {

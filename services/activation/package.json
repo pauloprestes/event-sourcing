@@ -5,8 +5,7 @@
   "main": "src/index.ts",
   "scripts": {
     "start": "nodemon",
-    "start:delete": "DELETE_EVENTS=true nodemon",
-    "start:req:worker": "WORKER=true nodemon",
+    "start:replay": "REPLAY=true nodemon",
     "build": "tsc"
   },
   "author": "",

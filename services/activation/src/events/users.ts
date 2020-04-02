@@ -68,12 +68,17 @@ const save = async (event: { id: string, type: string }) => {
 
 type EventNotification = (event: DefaultEvent[]) => Promise<void>;
 
+const queryBasedOnLastAddedDate = (lastAdded: number) => {
+  if (!lastAdded) return {};
+  return { addedAt: { $exists: true, $gt: lastAdded } };
+}
+
 export const subscribeToNewEvents = (cursor: () => Promise<number>, notify: EventNotification) => {
   const backgroundQuery = async () => {
     setTimeout(async () => {
       try {
         await runConnected("events", async (events: Collection<DefaultEvent>) => {
-          const query = { addedAt: { $exists: true, $gt: (await cursor()) } }
+          const query = queryBasedOnLastAddedDate(await cursor())
           const result = await events.find(query).toArray()
           if (result.length > 0) {
             await notify(result)
@@ -81,8 +86,8 @@ export const subscribeToNewEvents = (cursor: () => Promise<number>, notify: Even
         });
       }
       catch (err) {
-        console.log("error listing new events")
         console.log(err)
+        console.log("error listing new events")
       }
       finally {
         backgroundQuery()
@@ -131,9 +136,3 @@ export const subscribeToEvent = (id: string, ...eventTypes: string[]) => new Pro
 
   backgroundQuery()
 });
-
-export const deletedAllEvents = async () =>
-  await runConnected("events", async (events: Collection<DefaultEvent>) => {
-    events.dropIndexes()
-    events.deleteMany({})
-  })
