@@ -10,7 +10,6 @@ const postHandler = async (ctx: Koa.Context) => {
   user.id = uuidV4();
   addUser(user)
   if (!await waitForUserActivation(user.id)) {
-    deleteUser(user.id);
     ctx.status = 422;
     return
   }

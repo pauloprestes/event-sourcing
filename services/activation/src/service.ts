@@ -4,6 +4,7 @@ import { runConnected } from "./db";
 import { UserCreatedEvent, succeedUserActivation, failUserActivation, UserDeletedEvent, subscribeToNewEvents, UserActivationFailed } from "./events/users";
 
 const UNIQUE_EMAIL = "unique_email"
+const EVENTS_CURSOR = "cursors"
 
 interface UniqueEmailRecord {
   _id: string
@@ -37,25 +38,48 @@ const deleteUser = async (event: { id: string }) => await runConnected(UNIQUE_EM
   await uniqueEmail.deleteOne({ _id: event.id })
 )
 
-let lastAdded = 0
-export const lastAddedEvent = () => runConnected(UNIQUE_EMAIL, async (uniqueEmail: Collection<UniqueEmailRecord>) => {
-  const cursor = uniqueEmail.find({ lastUpdated: { $gt: lastAdded } }).sort({ lastUpdated: -1 })
-  if (!await cursor.hasNext()) return lastAdded
-
-  lastAdded = (await cursor.next()).lastUpdated
-  return lastAdded
+export const lastAddedEvent = () => runConnected(EVENTS_CURSOR, async (eventCursor: Collection<CursorRecord>) => {
+  try {
+    return (await eventCursor.findOne({ _id: "activation" })).lastAdded
+  }
+  catch {
+    return 0
+  }
 })
 
-export const startCleanTables = async () => runConnected(UNIQUE_EMAIL, async (uniqueEmail: Collection<UniqueEmailRecord>) => {
-  await uniqueEmail.drop()
-})
+const saveCursor = async (cursor: CursorRecord) => runConnected(EVENTS_CURSOR, async (eventCursor: Collection<CursorRecord>) => {
+  try {
+    await eventCursor.insertOne(cursor);
+  }
+  catch (err) {
+    await eventCursor.updateOne({ _id: cursor._id }, { $set: cursor });
+  }
+});
+
+export const startCleanTables = async () => {
+  await runConnected(EVENTS_CURSOR, async (eventCursor: Collection<UniqueEmailRecord>) => {
+    await eventCursor.deleteOne({ _id: "activation" });
+  })
+  await runConnected(UNIQUE_EMAIL, async (uniqueEmail: Collection<UniqueEmailRecord>) => {
+    await uniqueEmail.deleteMany({})
+  })
+}
 
 export const handleEvents = async (events) => {
   for (let i = 0; i < events.length; i++) {
+    console.log(events)
+    console.log(await lastAddedEvent())
     const userEvent = events[i];
 
     if (userEvent.type === "UserCreatedEvent") await validateUser(userEvent as UserCreatedEvent)
     if (userEvent.type === "UserActivationFailed") await deleteUser(userEvent as UserActivationFailed)
     if (userEvent.type === "UserDeletedEvent") await deleteUser(userEvent as UserDeletedEvent)
+
+    await saveCursor({ _id: "activation", lastAdded: userEvent.addedAt });
   }
+}
+
+interface CursorRecord {
+  _id: string
+  lastAdded: number
 }
